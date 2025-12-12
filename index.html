@@ -88,10 +88,7 @@
 <body>
     <div class="container">
         <h1>📝 Schülerbericht erstellen</h1>
-        <form id="berichtForm" method="POST" action=https://app.langdock.com/api/hooks/workflows/3d735329-2dc6-4898-b487-14185eb6cae4>
-    <!-- Ihre Formularfelder -->
-</form>
-
+        
         <form id="berichtForm">
             <div class="form-group">
                 <label for="kollege_name">Ihr Name *</label>
@@ -132,8 +129,8 @@
     </div>
     
     <script>
-        // WICHTIG: Ersetze diese URL mit deiner Webhook-URL aus dem Workflow
-        const WEBHOOK_URL = https://spreckelmeister.github.io/daseedasd/;
+        // Die Webhook-URL aus dem Langdock Workflow
+        const WEBHOOK_URL = 'https://app.langdock.com/api/hooks/workflows/3d735329-2dc6-4898-b487-14185eb6cae4';
         
         document.getElementById('berichtForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -161,7 +158,9 @@
                 });
                 
                 const html = await response.text();
-                document.body.innerHTML = html;
+                document.open();
+                document.write(html);
+                document.close();
             } catch (error) {
                 alert('❌ Fehler beim Erstellen des Berichts: ' + error.message);
                 document.getElementById('berichtForm').style.display = 'block';
