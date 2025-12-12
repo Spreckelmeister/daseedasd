@@ -83,6 +83,15 @@
             color: #667eea;
             margin-top: 20px;
         }
+        .error {
+            display: none;
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #c53030;
+        }
     </style>
 </head>
 <body>
@@ -92,49 +101,63 @@
         <form id="berichtForm">
             <div class="form-group">
                 <label for="kollege_name">Ihr Name *</label>
-                <input type="text" id="kollege_name" required>
+                <input type="text" id="kollege_name" name="kollege_name" required>
             </div>
             
             <div class="form-group">
                 <label for="schueler_name">Name des Schülers *</label>
-                <input type="text" id="schueler_name" required>
+                <input type="text" id="schueler_name" name="schueler_name" required>
             </div>
             
             <div class="form-group">
                 <label for="klasse">Klasse *</label>
-                <input type="text" id="klasse" required>
+                <input type="text" id="klasse" name="klasse" required>
             </div>
             
             <div class="form-group">
                 <label for="schule">Schule *</label>
-                <input type="text" id="schule" required>
+                <input type="text" id="schule" name="schule" required>
             </div>
             
             <div class="form-group">
                 <label for="datum">Datum/Zeitraum *</label>
-                <input type="date" id="datum" required>
+                <input type="date" id="datum" name="datum" required>
             </div>
             
             <div class="form-group">
                 <label for="stichpunkte">Beobachtungen (Stichpunkte) *</label>
-                <textarea id="stichpunkte" required placeholder="Geben Sie hier Ihre Beobachtungen in Stichpunkten ein..."></textarea>
+                <textarea id="stichpunkte" name="stichpunkte" required placeholder="Geben Sie hier Ihre Beobachtungen in Stichpunkten ein..."></textarea>
             </div>
             
-            <button type="submit">Bericht generieren</button>
+            <button type="submit" id="submitBtn">Bericht generieren</button>
         </form>
         
         <div class="loading" id="loading">
-            <p>⏳ Bericht wird erstellt...</p>
+            <p>⏳ Bericht wird erstellt... Bitte warten Sie.</p>
+        </div>
+        
+        <div class="error" id="error">
+            <p id="errorMessage"></p>
         </div>
     </div>
     
     <script>
-        // Die Webhook-URL aus dem Langdock Workflow
         const WEBHOOK_URL = 'https://app.langdock.com/api/hooks/workflows/3d735329-2dc6-4898-b487-14185eb6cae4';
         
         document.getElementById('berichtForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Buttons und Anzeigen steuern
+            const form = document.getElementById('berichtForm');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            form.style.display = 'none';
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            
+            // Formulardaten sammeln
             const formData = {
                 kollege_name: document.getElementById('kollege_name').value,
                 schueler_name: document.getElementById('schueler_name').value,
@@ -144,27 +167,56 @@
                 stichpunkte: document.getElementById('stichpunkte').value
             };
             
-            // Formular ausblenden, Loading anzeigen
-            document.getElementById('berichtForm').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
+            console.log('Sende Daten:', formData);
             
             try {
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    mode: 'cors'
                 });
                 
-                const html = await response.text();
-                document.open();
-                document.write(html);
-                document.close();
-            } catch (error) {
-                alert('❌ Fehler beim Erstellen des Berichts: ' + error.message);
-                document.getElementById('berichtForm').style.display = 'block';
-                document.getElementById('loading').style.display = 'none';
+                console.log('Response Status:', response.status);
+                console.log('Response Headers:', response.headers);
+                
+                if (!response.ok) {
+                    throw new Error(`Server antwortete mit Status ${response.status}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+                
+                if (contentType && contentType.includes('text/html')) {
+                    const html = await response.text();
+                    console.log('Erhalte HTML:', html.substring(0, 200));
+                    
+                    // Neue Seite mit der Antwort laden
+                    document.open();
+                    document.write(html);
+                    document.close();
+                } else {
+                    const text = await response.text();
+                    console.log('Unerwarteter Content-Type:', text);
+                    throw new Error('Unerwartete Antwort vom Server');
+                }
+                
+            } catch (err) {
+                console.error('Fehler:', err);
+                
+                // Fehler anzeigen
+                document.getElementById('errorMessage').textContent = 
+                    `❌ Fehler beim Erstellen des Berichts: ${err.message}\n\n` +
+                    `Bitte stellen Sie sicher, dass:\n` +
+                    `1. Der Workflow in Langdock veröffentlicht wurde (Publish-Button)\n` +
+                    `2. Sie mit dem Internet verbunden sind\n` +
+                    `3. Alle Felder korrekt ausgefüllt sind`;
+                
+                form.style.display = 'block';
+                loading.style.display = 'none';
+                error.style.display = 'block';
             }
         });
     </script>
